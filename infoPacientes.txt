@@ -1,0 +1,3 @@
+Joao1 1 4 1
+Ricardo2 1 5 1
+Andre3 1 6 2
