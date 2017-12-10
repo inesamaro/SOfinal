@@ -30,9 +30,10 @@
 //define input_pipe
 #define PIPE_NAME "input_pipe"
 
+
 FILE *f;
 
-struct timespec start, finish;
+struct timespec start, helper, finish;
 double shift_time;
 
 
@@ -43,7 +44,7 @@ typedef struct infoPaciente {
   int numChegada;
   int tempoTriagem;
   int tempoAtend;
-  clock_t inicio; //para calcularmos qunato tempo e que cada paciente gastou desde que entrou no sistema atá que saiu
+  double inicio; //para calcularmos qunato tempo e que cada paciente gastou desde que entrou no sistema atá que saiu
   clock_t inicioTriagem;;
   clock_t inicioAtend;
   clock_t fimAtend;
@@ -65,6 +66,16 @@ typedef struct estat {
   int tempoMedioTotal;
   int countPacientesQueue;
 } Estat;
+
+typedef struct sem {
+  sem_t semProcess;
+} Sem;
+
+Sem* sem;
+
+int* triagensIds;
+int triagensParaApagar;
+
 
 //define estrutura para a configuraçao do sistema
 typedef struct config {

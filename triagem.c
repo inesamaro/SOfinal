@@ -1,11 +1,12 @@
 #include "header.h"
 
-void *triagem(){
+void *triagem(void* a){
   printf("Uma thread entrou na triagem!\n");
   //printf("TRIAGEM HAPPENING\n");
   struct msqid_ds buf;
   int num_pacientes;
   Paciente *paciente;
+  int id = *((int*)a);
 
   while(1) {
     sem_wait(&full);
@@ -16,6 +17,11 @@ void *triagem(){
       aux1 = aux1->info.next;
     }
     pthread_mutex_lock(&mutex);
+    if (id > triagensParaApagar ) {
+      pthread_mutex_unlock(&mutex);
+      printf("Vou sair\n");
+      pthread_exit(NULL);
+    }
     if (queuePacientes->info.next != NULL) {
       printf("No if\n");
       paciente = queuePacientes->info.next; //vamos buscar o primeiro paciente da queuePacientes
@@ -49,24 +55,3 @@ void *triagem(){
     }
   }
 }
-  /*pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-  while(1){
-    pthread_mutex_lock(&mutex);
-    printf("estou prestes a ser triado(sleep): %s\n",paciente->info.nome );
-    sleep((int)paciente->info.tempoTriagem);
-    //printf("ESTA E A PROXIMA PESSOA A SER TRIADA %s\n",paciente->info.nome);
-    //shared_var->nTriados += 1;
-    //printf("numero de pessoas triadas: %d \n", (shared_var)->nTriados);
-    sendMQ(*paciente);
-
-    paciente = queuePacientes->info.next;
-    //printf("Paciente que vai ser eliminado: %s\n", paciente->info.nome);
-    while((queuePacientes->info.next) == NULL){
-      continue;
-    }
-    queuePacientes->info.next = (queuePacientes->info.next)->info.next;
-
-    pthread_mutex_unlock(&mutex);
-  }
-
-  return NULL;*/

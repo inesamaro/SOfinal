@@ -6,6 +6,9 @@ void *namedPipe() {
   char space[2] = " ";
   newNumTriagens = 0;
   char string[30];
+  double total_time;
+  struct timespec helper, finish;
+
   while(1) {
     num_chars = read(fdpipe, string, 400);
     if (num_chars > 0) {
@@ -24,6 +27,8 @@ void *namedPipe() {
 
       else {
         printf("Pipe leu um novo paciente\n");
+        clock_gettime(CLOCK_REALTIME, &helper);
+        total_time = ((double)(helper.tv_sec-start.tv_sec) + ((helper.tv_nsec-start.tv_nsec)) / 1000000000.0);
         pthread_mutex_lock(&condNewPacientes_mutex);
         Node_paciente p;
         p = (Node_paciente)malloc(sizeof(Paciente));
@@ -43,7 +48,7 @@ void *namedPipe() {
         printf("token: %s\n",token );
         p->mtype = atoi(token);
 
-        p->info.inicio = clock();
+        p->info.inicio = total_time;
         p->info.inicioAtend = 0;
         p->info.inicioTriagem = 0;
         p->info.fimAtend = 0;
@@ -54,6 +59,7 @@ void *namedPipe() {
         }
         aux->info.next = p;
         printf("nome na queue: %s\n", (aux->info.next)->info.nome);
+        printf("inicio do paciente: %f\n", (aux->info.next)->info.inicio);
         (aux->info.next)->info.next = NULL;
 
         Paciente* aux1 = queuePacientes;

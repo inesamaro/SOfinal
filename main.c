@@ -1,6 +1,18 @@
 #include "header.h"
 
 int main(int argc, char *argv[]){
+  clock_gettime(CLOCK_REALTIME, &start);
+  int idSemProcess;
+  if ((idSemProcess = shmget(IPC_PRIVATE, sizeof(Sem), IPC_CREAT|0777)) > 0 ) {
+    if ((sem = shmat(idSemProcess, NULL, 0)) == (Sem*) -1){
+      perror("error in shmat");
+    }
+    sem_init(&sem->semProcess, 1, 1);
+  }
+  else {
+    printf("Erro ao criar a memória partilhada!");
+  }
+
   //signal(SIGUSR1, sigusr1);
   //signal(SIGINT, terminar);
   sem_init(&sem_sharedvar, 0, 1);

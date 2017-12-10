@@ -2,9 +2,15 @@
 void lerInfoPacientes() {
   FILE *fich = fopen("infoPacientes.txt", "r");
   char linha[400], info[50];
+  double total_time;
+  struct timespec helper, finish;
   //envia cada uma das linhas do ficheiro pelo pipe. LE TODAS AS LINHAS
   while (fscanf(fich, " %[^\n]", linha) != EOF) {
     write(fdpipe, linha, 400);
+    clock_gettime(CLOCK_REALTIME, &helper);
+    printf("%ld\n",start.tv_sec );
+    printf("%ld\n",helper.tv_sec );
+    total_time = ((double)(helper.tv_sec-start.tv_sec) + ((helper.tv_nsec-start.tv_nsec)) / 1000000000.0);
     printf("linha lida: %s\n", linha);
 
     char line[400], c;
@@ -54,7 +60,7 @@ void lerInfoPacientes() {
     p->mtype = atoi(info);
     count =0;
 
-    p->info.inicio = clock();
+    p->info.inicio = total_time;
     p->info.inicioAtend = 0;
     p->info.inicioTriagem = 0;
     p->info.fimAtend = 0;
@@ -65,6 +71,7 @@ void lerInfoPacientes() {
     }
     aux->info.next = p;
     printf("[lerInfo] nome na queue: %s\n", (aux->info.next)->info.nome);
+    printf("[lerInfo] tempo do inicio do paciente: %f\n", (aux->info.next)->info.inicio);
     p->info.next = NULL;
     sem_post(&full);
   }

@@ -1,43 +1,27 @@
 #include "header.h"
 
-/*void atendEspecial(){
-  sem_wait(&sem_sharedvar);
-  while((shared_var)->countPacientesQueue > (int)(config->queueMax * 0.8 + 0.5)){
-    Paciente paciente;
-    struct timespec start, finish;
+void atendEspecial(){
+  struct msqid_ds buf;
+  int num_pacientes;
+  num_pacientes = buf.msg_qnum;
+  Paciente paciente;
 
-    double shift_time, left_time;
-    clock_gettime(CLOCK_REALTIME, &start);
-    clock_gettime(CLOCK_REALTIME, &finish);
-    shift_time = ((double)(finish.tv_sec-start.tv_sec) + ((finish.tv_nsec-start.tv_nsec)) / 1000000000.0);
-
-    clock_gettime(CLOCK_REALTIME, &finish);
-    shift_time = ((double)(finish.tv_sec-start.tv_sec) + ((finish.tv_nsec-start.tv_nsec)) / 1000000000.0);
-    while (shift_time < config->tempoTurno) {
-      sem_wait(&sem_mq);
+  while(num_pacientes > (int)(config->queueMax * 0.8 + 0.5)){
       if (msgrcv(mqid, &paciente, sizeof(paciente)-sizeof(long), -3, 0) == -1){
     	   perror("Oh boy u got a error recieving a msg from the messagequeue");
       }
-      sem_post(&sem_mq);
-
       sleep(paciente.info.tempoAtend);
 
-      sem_wait(&sem_sharedvar);
+      sem_wait(&sem->semProcess);
       shared_var->countPacientesQueue --;
       shared_var->nAtendidos ++;
-      sem_post(&sem_sharedvar);
+      sem_post(&sem->semProcess);
 
       printf("-----------------------------------> %s, %ld\n",paciente.info.nome, paciente.mtype);
-
-      end = clock();
-      shift_time = (double)(end - start); // / CLOCKS_PER_SEC;
-      printf("shift time %f // tempo doctor %ld\n", shift_time, config->tempoTurno);
-
-    }
   }
-  sem_post(&sem_sharedvar);
+
   exit(0);
-}*/
+}
 
 void sigAlarm(int sig){
   exit(0);
@@ -45,11 +29,11 @@ void sigAlarm(int sig){
 
 void atendimento() {
   Paciente paciente; // = (Paciente)malloc(sizeof(struct pa
-  struct timespec start, finish;
+  struct timespec startProcess, finishProcess, helper1, helper2;
 
   double shift_time, left_time;
-  clock_gettime(CLOCK_REALTIME, &start);
-  clock_gettime(CLOCK_REALTIME, &finish);
+  clock_gettime(CLOCK_REALTIME, &startProcess);
+  clock_gettime(CLOCK_REALTIME, &finishProcess);
 
   while (shift_time < config->tempoTurno) {
     signal(SIGALRM, sigAlarm);
@@ -63,15 +47,15 @@ void atendimento() {
     printf("[%d]-------------------------------------------------> %s COM %ld\n",getpid(), paciente.info.nome, paciente.mtype);
     signal(SIGALRM, SIG_IGN);
 
-    sem_wait(&sem_sharedvar);
+    sem_wait(&sem->semProcess);
     (shared_var)->countPacientesQueue--;
     (shared_var)->nAtendidos ++;
-    sem_post(&sem_sharedvar);
+    sem_post(&sem->semProcess);
 
     sleep(paciente.info.tempoAtend);
 
-    clock_gettime(CLOCK_REALTIME, &finish);
-    shift_time = ((double)(finish.tv_sec-start.tv_sec) + ((finish.tv_nsec-start.tv_nsec)) / 1000000000.0);
+    clock_gettime(CLOCK_REALTIME, &finishProcess);
+    shift_time = ((double)(finishProcess.tv_sec-startProcess.tv_sec) + ((finishProcess.tv_nsec-startProcess.tv_nsec)) / 1000000000.0);
     printf("[%d]TEMPO DO SHIFT %f\n", getpid(), shift_time);
   }
 }
@@ -88,24 +72,30 @@ void criarDoutor() {
     }
   }
 
-  while(1){ //sempre que um dos processos morre um novo é criado
-      if(fork() == 0){
-        sem_wait(&sem_queueMax);
+  if(fork() == 0){ //NAO E E UM DOUTOR
+    while(1){
+      sem_wait(&sem_queueMax);
+      if (fork() == 0) {
         printf("[%d] ATENDESPECIAL INICIO DOUTOR\n", getpid());
         //atendEspecial();
         printf("[%d] ATENDESPECIAL FIM DOUTOR\n", getpid());
         exit(0);
       }
-      wait(NULL);
-      msgctl(mqid, IPC_STAT, &buf);
-      num_pacientes = buf.msg_qnum;
+    }
+  }
+
+  while(1){ //sempre que um dos processos morre um novo é criado
+    wait(NULL);
+    msgctl(mqid, IPC_STAT, &buf);
+    num_pacientes = buf.msg_qnum;
+    if(num_pacientes != 0){
       if(fork() == 0){
         printf("[%d] NEW INICIO DOUTOR\n", getpid());
         atendimento(); //por fazer
         printf("[%d] NEW FIM DOUTOR\n", getpid());
         exit(0);
       }
-      printf("numero de pacientes na queue: %d\n", num_pacientes);
     }
- //de momento manter comentado para nao criar demasiados doutores
+    printf("numero de pacientes na queue: %d\n", num_pacientes);
+  }
 }
